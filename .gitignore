@@ -1,0 +1,11 @@
+checkpoints/
+data/attributes/
+data/routing_lvs/
+data/simulations/
+data/timeseries/
+data/graph.json
+dist/
+experiments/
+src/jacare.egg-info/
+venv/
+__pycache__/
