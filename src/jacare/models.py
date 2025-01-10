@@ -21,7 +21,7 @@ class AbstractModel(eqx.Module):
     ) -> Tuple[
         Tuple[jnp.ndarray, jnp.ndarray],
         Tuple[jnp.ndarray, jnp.ndarray],
-        Tuple[jnp.ndarray, jnp.ndarray]
+        Tuple[jnp.ndarray, jnp.ndarray],
     ]:
         pass
 
@@ -31,7 +31,7 @@ class AbstractModel(eqx.Module):
         data: BasinData,
         xd_norms: Tuple[jnp.ndarray, jnp.ndarray],
         xs_norms: Tuple[jnp.ndarray, jnp.ndarray],
-        y_norms: Tuple[jnp.ndarray, jnp.ndarray]
+        y_norms: Tuple[jnp.ndarray, jnp.ndarray],
     ) -> jnp.ndarray:
         pass
 
@@ -50,7 +50,7 @@ class AbstractConvolutionModel(AbstractModel):
     ) -> Tuple[
         Tuple[jnp.ndarray, jnp.ndarray],
         Tuple[jnp.ndarray, jnp.ndarray],
-        Tuple[jnp.ndarray, jnp.ndarray]
+        Tuple[jnp.ndarray, jnp.ndarray],
     ]:
         # TODO: is this the best normalization?
         # maybe an alternative is to normalize all the attributes but the area
@@ -93,18 +93,29 @@ class AbstractConvolutionModel(AbstractModel):
         y_norms: Tuple[jnp.ndarray, jnp.ndarray],
     ) -> jnp.ndarray:
         
-        # preprocessing
         data.normalize(xd_norms, xs_norms, None)
-        xd, xs, _ = self.serialize(data)
-        
-        # prediction
-        y_pred = jax.vmap(self)(xd, xs)
-        y_pred = y_pred * y_norms[1] + y_norms[0]
-        
-        # departition
-        true_shape = data.y.shape[0], data.y.shape[1]-self.seq_length+1
-        
-        return jnp.reshape(y_pred.T, true_shape)
+
+        def scan_fn(carry, i):
+            # extract seq_length slice
+            xd_slice = jax.lax.dynamic_slice(
+                data.xd,
+                (0, i, 0),
+                (data.xd.shape[0], self.seq_length, data.xd.shape[2])
+            )
+            xs_expanded = jnp.expand_dims(data.xs, axis=(-1,))
+
+            # predict single step
+            y_pred = jax.vmap(self)(xd_slice, xs_expanded)
+            y_pred = y_pred * y_norms[1] + y_norms[0]
+
+            return carry, y_pred
+
+        # predict through scan
+        num_steps = data.y.shape[1] - self.seq_length + 1
+        _, y_preds = jax.lax.scan(scan_fn, None, jnp.arange(num_steps))
+        y_preds = jnp.transpose(y_preds)[0]
+
+        return y_preds
 
 
 class AbstractRecurrentModel(AbstractModel):
@@ -114,7 +125,7 @@ class AbstractRecurrentModel(AbstractModel):
     ) -> Tuple[
         Tuple[jnp.ndarray, jnp.ndarray],
         Tuple[jnp.ndarray, jnp.ndarray],
-        Tuple[jnp.ndarray, jnp.ndarray]
+        Tuple[jnp.ndarray, jnp.ndarray],
     ]:
         return data.get_norms()
     
@@ -144,30 +155,37 @@ class AbstractRecurrentModel(AbstractModel):
                 
         return xd_ser, y_ser
     
-    # TODO: take out the for loop of this function to jit.
-    # one may do that by not using the serialization, but
-    # dynamical indexes instead. In such case, pass the
-    # raw arrays instead of BasinData.
     def simulate(
         self,
         data: BasinData,
         xd_norms: Tuple[jnp.ndarray, jnp.ndarray],
-        xs_norms: Tuple[None, None],
-        y_norms: Tuple[jnp.ndarray, jnp.ndarray]
+        xs_norms: Tuple[jnp.ndarray, jnp.ndarray],
+        y_norms: Tuple[jnp.ndarray, jnp.ndarray],
     ) -> jnp.ndarray:
         
-        # preprocessing
         data.normalize(xd_norms, xs_norms, None)
-        xd, _ = self.serialize(data)
-        
-        # prediction
-        y_pred = jax.vmap(self)(xd)
-        y_pred = y_pred * y_norms[1] + y_norms[0]
-        
-        # departition
-        true_shape = data.y.shape[0], data.y.shape[1]-self.seq_length+1
-        
-        return jnp.reshape(y_pred.T, true_shape)
+        xd = self._xs_to_xd(data.xs, data.xd)
+
+        def scan_fn(carry, i):
+            # extract seq_length slice
+            xd_slice = jax.lax.dynamic_slice(
+                xd,
+                (0, i, 0),
+                (xd.shape[0], self.seq_length, xd.shape[2])
+            )
+
+            # predict single step
+            y_pred = jax.vmap(self)(xd_slice)
+            y_pred = y_pred * y_norms[1] + y_norms[0]
+
+            return carry, y_pred
+
+        # predict through scan
+        num_steps = data.y.shape[1] - self.seq_length + 1
+        _, y_preds = jax.lax.scan(scan_fn, None, jnp.arange(num_steps))
+        y_preds = jnp.transpose(y_preds)[0]
+
+        return y_preds
 
 
 class FixedGamma(AbstractConvolutionModel):

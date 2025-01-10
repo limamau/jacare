@@ -1,4 +1,4 @@
-import argparse
+import argparse, time
 import numpy as np
 
 from jacare.checkpointing import Checkpointer
@@ -46,7 +46,10 @@ def main(args):
     )
     
     # simulation
+    start_time = time.time()
     y_pred = model.simulate(test_data, *norms)
+    end_time = time.time()
+    print("Simulation time:", end_time - start_time)
     y_true = test_data.y[:,model.seq_length-1:]
     
     # metrics
