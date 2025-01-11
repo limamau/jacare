@@ -191,16 +191,19 @@ class AbstractRecurrentModel(AbstractModel):
 class FixedGamma(AbstractConvolutionModel):
     shape: float
     scale: float
+    is_conserving_mass: bool
 
     def __init__(
         self,
         shape: float,
         scale: float,
         seq_length: int,
+        is_conserving_mass: bool = False,
     ):
         self.shape = shape
         self.scale = scale
         self.seq_length = seq_length
+        self.is_conserving_mass = is_conserving_mass
 
     def __call__(
         self,
@@ -220,8 +223,8 @@ class FixedGamma(AbstractConvolutionModel):
             scale=self.scale,
         )
         
-        # TODO: add parameter to normalize the pdf (conserve mass)
-        pdf = pdf / jnp.sum(pdf)
+        if self.is_conserving_mass:
+            pdf = pdf / jnp.sum(pdf)
         
         # runoff components
         sro_conv = jnp.sum(pdf[::-1] * xd[..., 0], axis=-1)
@@ -235,16 +238,19 @@ class FixedGamma(AbstractConvolutionModel):
 class FixedIRF(AbstractConvolutionModel):
     C: float
     D: float
+    is_conserving_mass: bool
 
     def __init__(
         self,
         velocity: float,
         diffusivity: float,
         seq_length: int,
+        is_conserving_mass: bool = False,
     ):
         self.C = velocity
         self.D = diffusivity
         self.seq_length = seq_length
+        self.is_conserving_mass = is_conserving_mass
 
     def __call__(
         self,
@@ -264,8 +270,8 @@ class FixedIRF(AbstractConvolutionModel):
             -((self.C * t - l)**2) / (4 * self.D * t)
         )
         
-        # TODO: add parameter to normalize the pdf (conserve mass)
-        pdf = pdf / jnp.sum(pdf)
+        if self.is_conserving_mass:
+            pdf = pdf / jnp.sum(pdf)
         
         # runoff components
         up_q_conv = jnp.sum(pdf[::-1] * xd[..., -1], axis=-1)
@@ -310,6 +316,7 @@ class MLPGamma(AbstractConvolutionModel):
     hidden_size: int
     attributes_size: int
     multiplier: float
+    is_conserving_mass: bool
     slinear1: eqx.nn.Linear
     sslinear1: eqx.nn.Linear
     slinear2: eqx.nn.Linear
@@ -321,7 +328,8 @@ class MLPGamma(AbstractConvolutionModel):
         hidden_size: int,
         seq_length: int,
         multiplier: float,
-        key: jax.random.PRNGKey
+        key: jax.random.PRNGKey,
+        is_conserving_mass: bool = False,
     ):
         skey1, sskey1, skey2, sskey2 = jrandom.split(key, num=4)
         self.attributes_size = attributes_size
@@ -332,6 +340,7 @@ class MLPGamma(AbstractConvolutionModel):
         self.sslinear1 = eqx.nn.Linear(attributes_size, hidden_size, key=sskey1)
         self.slinear2 = eqx.nn.Linear(hidden_size, 2, key=skey2)
         self.sslinear2 = eqx.nn.Linear(hidden_size, 2, key=sskey2)
+        self.is_conserving_mass = is_conserving_mass
 
     # TODO: why is this forecasting NaNs? more attributes is enough?
     # TODO: use sro and ssro instead of xd
@@ -371,6 +380,10 @@ class MLPGamma(AbstractConvolutionModel):
             a=ss_shapes,
             scale=ss_scales,
         )
+        
+        if self.is_conserving_mass:
+            s_pdf = s_pdf / jnp.sum(s_pdf)
+            ss_pdf = ss_pdf / jnp.sum(ss_pdf)
         
         # runoff components
         sro_conv = jnp.sum(s_pdf[::-1] * xd[..., 0], axis=-1)

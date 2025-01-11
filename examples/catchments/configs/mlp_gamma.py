@@ -35,6 +35,7 @@ def get_config():
     config.seed = 5678
     config.seq_length = 10
     config.multiplier = 5.0
+    config.is_conserving_mass = True
     
     # model
     config.model = MLPGamma(
@@ -42,7 +43,8 @@ def get_config():
         hidden_size=config.hidden_size,
         seq_length=config.seq_length,
         multiplier=config.multiplier,
-        key=jrandom.PRNGKey(config.seed)
+        key=jrandom.PRNGKey(config.seed),
+        is_conserving_mass=config.is_conserving_mass,
     )
     
     # training parameters

@@ -34,12 +34,14 @@ def get_config():
     config.shape = 1.5
     config.scale = 1.0
     config.seq_length = 60
+    config.is_conserving_mass = True
     
     # model
     config.model = FixedGamma(
         shape=config.shape,
         scale=config.scale,
         seq_length=config.seq_length,
+        is_conserving_mass=config.is_conserving_mass
     )
     
     # dummy training parameters just to save the model
