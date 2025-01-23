@@ -88,7 +88,7 @@ def train_routing_level(
             loss_msg = f" train_loss={np.mean(losses):.4f},"
             nse_msg = f" val_nse={scores[0]:.2f},"
             kge_msg = f" val_kge={scores[1]:.2f}"
-            print(step_msg + loss_msg + nse_msg + kge_msg)
+            print(step_msg + loss_msg + nse_msg + kge_msg, flush=True)
 
         # checkpointing
         ckpter.save(mod, step)
