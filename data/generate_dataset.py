@@ -9,9 +9,10 @@ KM2_TO_M2 = 1000000
 
 def generate_graph(script_dir):
     graph = {
-        789: [123, 456],
-        123: [],
-        456: []
+        1: [],
+        2: [],
+        3: [1, 2],
+        4: [3],
     }
     
     graph_file_path = os.path.join(script_dir, "graph.json")
@@ -20,8 +21,9 @@ def generate_graph(script_dir):
 
 
 def generate_routing_lvs(script_dir):
-    routing_lv1 = [123, 456]
-    routing_lv2 = [789]
+    routing_lv1 = [1, 2]
+    routing_lv2 = [3]
+    routing_lv3 = [4]
     
     os.makedirs(os.path.join(script_dir, "routing_lvs"), exist_ok=True)
     
@@ -31,18 +33,23 @@ def generate_routing_lvs(script_dir):
     with open(os.path.join(script_dir, "routing_lvs/routing_lv02.txt"), 'w') as f:
         f.writelines(f"{basin_id}\n" for basin_id in routing_lv2)
         
+    with open(os.path.join(script_dir, "routing_lvs/routing_lv03.txt"), 'w') as f:
+        f.writelines(f"{basin_id}\n" for basin_id in routing_lv3)
+        
 
 def generate_attributes(script_dir):
     AREA_CORRECTOR = 0.1
-    area_123 = 60502.4 / 2 * AREA_CORRECTOR
-    area_456 = 60502.4 * 2 * AREA_CORRECTOR
-    area_789 = (area_123 + area_456) / 2 * AREA_CORRECTOR
+    area_1 = 60502.4 / 2 * AREA_CORRECTOR
+    area_2 = 60502.4 * 2 * AREA_CORRECTOR
+    area_3 = (area_1 + area_2) / 2 * AREA_CORRECTOR
+    area_4 = area_3
+    
     
     attributes_df = pd.DataFrame(
-        index=pd.Index([123, 456, 789], name="basin"),
+        index=pd.Index([1, 2, 3, 4], name="basin"),
         data={
-            "area": [area_123, area_456, area_789],
-            "distance": [10000.0, 20000.0, 0.0], # dummy
+            "area": [area_1, area_2, area_3, area_4],
+            "distance": [10000.0, 20000.0, 5000.0, 0.0],
         }
     )
     
@@ -56,8 +63,8 @@ def generate_basins(script_dir, orig_file_path):
     attributes_names = ["sro_sum", "ssro_sum", "t2m_mean", "streamflow"]
     orig = orig_df[attributes_names].values
     
-    # 123
-    basin_123_df = pd.DataFrame(
+    # 1
+    basin_1_df = pd.DataFrame(
         index=orig_df.date[0:3650],
         data={
             "sro_sum": orig[0:3650, 0],
@@ -67,8 +74,8 @@ def generate_basins(script_dir, orig_file_path):
         }
     )
     
-    # 456
-    basin_456_df = pd.DataFrame(
+    # 2
+    basin_2_df = pd.DataFrame(
         index=orig_df.date[0:3650],
         data={
             "sro_sum": orig[0:3650, 0],
@@ -79,41 +86,57 @@ def generate_basins(script_dir, orig_file_path):
     )
     
     # time-shifted and aggregated streamflows
-    streamflow_123_shifted = basin_123_df.streamflow.shift(10, fill_value=0)
-    streamflow_456_shifted = basin_456_df.streamflow.shift(20, fill_value=0)
+    streamflow_1_shifted = basin_1_df.streamflow.shift(10, fill_value=0)
+    streamflow_2_shifted = basin_2_df.streamflow.shift(20, fill_value=0)
     orig_streamflow = orig[0:3650, 3]
-    streamflow_789 = streamflow_123_shifted + streamflow_456_shifted + orig_streamflow
+    streamflow_3 = streamflow_1_shifted + streamflow_2_shifted + orig_streamflow
+    streamflow_4 = streamflow_3.shift(5, fill_value=0)
     
-    # 789
-    basin_789_df = pd.DataFrame(
-        index=basin_123_df.index,
+    # 3
+    basin_3_df = pd.DataFrame(
+        index=basin_1_df.index,
         data={
-            "sro_sum": basin_123_df.sro_sum + basin_456_df.sro_sum,
-            "ssro_sum": basin_123_df.ssro_sum + basin_456_df.ssro_sum,
-            "t2m_mean": (basin_123_df.t2m_mean + basin_456_df.t2m_mean),
-            "streamflow": streamflow_789,
+            "sro_sum": basin_1_df.sro_sum + basin_2_df.sro_sum,
+            "ssro_sum": basin_1_df.ssro_sum + basin_2_df.ssro_sum,
+            "t2m_mean": (basin_1_df.t2m_mean + basin_2_df.t2m_mean),
+            "streamflow": streamflow_3,
+        }
+    )
+    
+    # 4
+    basin_4_df = pd.DataFrame(
+        index=basin_1_df.index,
+        data={
+            "sro_sum": basin_3_df.sro_sum,
+            "ssro_sum": basin_3_df.ssro_sum,
+            "t2m_mean": basin_3_df.t2m_mean,
+            "streamflow": streamflow_4,
         }
     )
     
     # save basins
     os.makedirs(os.path.join(script_dir, "timeseries"), exist_ok=True)
-    basin_123_df.to_csv(os.path.join(script_dir, "timeseries/basin_123.csv"))
-    basin_456_df.to_csv(os.path.join(script_dir, "timeseries/basin_456.csv"))
-    basin_789_df.to_csv(os.path.join(script_dir, "timeseries/basin_789.csv"))
+    basin_1_df.to_csv(os.path.join(script_dir, "timeseries/basin_1.csv"))
+    basin_2_df.to_csv(os.path.join(script_dir, "timeseries/basin_2.csv"))
+    basin_3_df.to_csv(os.path.join(script_dir, "timeseries/basin_3.csv"))
+    basin_4_df.to_csv(os.path.join(script_dir, "timeseries/basin_4.csv"))
     
-    return basin_123_df, basin_456_df, basin_789_df
+    return basin_1_df, basin_2_df, basin_3_df, basin_4_df
+
     
-def plot_streamflows(basin_123_df, basin_456_df, basin_789_df):
+def plot_streamflows(basin_1_df, basin_2_df, basin_3_df, basin_4_df):
     plt.figure(figsize=(10, 6))
-    plt.plot(basin_123_df.index, basin_123_df.streamflow, label="Basin 123")
-    plt.plot(basin_456_df.index, basin_456_df.streamflow, label="Basin 456")
-    plt.plot(basin_789_df.index, basin_789_df.streamflow, label="Basin 789", linestyle='--')
+    plt.plot(basin_1_df.index, basin_1_df.streamflow, label="Basin 1")
+    plt.plot(basin_2_df.index, basin_2_df.streamflow, label="Basin 2")
+    plt.plot(basin_3_df.index, basin_3_df.streamflow, label="Basin 3")
+    plt.plot(basin_4_df.index, basin_4_df.streamflow, label="Basin 4")
     plt.xlabel("Date")
     plt.ylabel("Streamflow")
-    plt.title("Streamflows for Basins 123, 456, and 789")
+    plt.title("Streamflows for Basins 1, 2, 3 and 4")
     plt.legend()
     plt.grid()
     plt.show()
+
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -127,13 +150,13 @@ def main():
         script_dir,
         "basin_orig.csv",
     )
-    basin_123_df, basin_456_df, basin_789_df = generate_basins(script_dir, orig_file_path)
+    basin_1_df, basin_2_df, basin_3_df, basin_4_df = generate_basins(script_dir, orig_file_path)
     
     # attributes
     generate_attributes(script_dir)
     
     # quick check
-    plot_streamflows(basin_123_df, basin_456_df, basin_789_df)
+    plot_streamflows(basin_1_df, basin_2_df, basin_3_df, basin_4_df)
 
 if __name__ == "__main__":
     main()
