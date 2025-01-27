@@ -12,7 +12,7 @@ from jacare.models import AbstractModel
 class AbstractRouter():
     timeseries_dir: str
     attributes_dir: str
-    routing_lvs_dir: str
+    routing_lvs_basins: list[list[int]]
     num_routing_lvs: int
     graph: dict
     simulation_file_path: str
@@ -56,12 +56,38 @@ class HillslopeChannelRouter(AbstractRouter):
         bound_dates: str,
         hillslope_module: AbstractModel,
         channel_module: AbstractModel,
+        method: str = 'iterative',
+        # TODO: add optional variable "target" to alleviate
+        # training and include all basins ('all') or only gauged basins
+        # ('gauged') and their upstreams in the graph? Another option could 
+        # be to do that automatically during trainig, but using only gauged
+        # basins can be useful even for simulations with the goal of 
+        # only evaluating the model
     ):
         self.timeseries_dir = timeseries_dir
         self.attributes_dir = attributes_dir
-        self.routing_lvs_dir = routing_lvs_dir
         self.num_routing_lvs = len(os.listdir(routing_lvs_dir))
+        self.routing_lvs_basins = read_routing_lvs(
+            routing_lvs_dir, self.num_routing_lvs
+        )
         self.graph = read_graph(graph_file_path)
+        
+        self.method = method
+        # method == iterative will go iteratively through all
+        # routing levels where each basin is connected to a list
+        # containing direct upstreams only
+        if self.method == 'iterative':
+            pass
+        # method == parallel will transform all routing levels > 1
+        # into one (routing level 2) where each basin is connected 
+        # to a list containing all upstreams
+        elif self.method == 'parallel':
+            self.graph = aggregate_descendents(self.graph)
+            self.num_routing_lvs = 1
+            self.routing_lvs_basins = aggregate_routing_lvs(self.routing_lvs_basins)
+        else:
+            raise ValueError("Only methods 'iterative' and 'parallel' are valid.")
+        
         self.graph = integrate_distances_on_graph(self.graph, attributes_dir, distance_name)
         self.simulation_file_path = simulation_file_path
         self.mass_features_names = mass_features_names
@@ -78,7 +104,7 @@ class HillslopeChannelRouter(AbstractRouter):
         # array of summed streamflow from upstreams
         xd_upq = np.zeros((data.xd.shape[0], data.xd.shape[1]-seq_length+1))
         
-        # array of mean distance from upstreams 
+        # array of mean distance from upstreams
         xs_upl = np.zeros((data.xs.shape[0], 1))
         
         for i, basin_id in enumerate(data.basin_ids):
@@ -96,17 +122,15 @@ class HillslopeChannelRouter(AbstractRouter):
         
         # concat mean distance from upstreams in xs
         data.xs = jnp.concatenate((data.xs, xs_upl), axis=1)
-        
     
     def simulate_routing_lv(
         self, routing_lv,
         hillslope_xd_norms, hillslope_xs_norms, hillslope_y_norms,
         channel_xd_norms, channel_xs_norms, channel_y_norms,
     ):
-        basin_ids = read_routing_lv_ids(self.routing_lvs_dir, routing_lv)
+        basin_ids = self.routing_lvs_basins[routing_lv-1]
         
         # hillslope contribution
-        # TODO: use distance only if routing_lv > 1
         data = BasinData.from_files(
             timeseries_dir=self.timeseries_dir,
             attributes_dir=self.attributes_dir,
@@ -136,8 +160,9 @@ class HillslopeChannelRouter(AbstractRouter):
             # TODO: what if up_dict was directly used?
             # one idea is to define the models between
             # "hillslope" models, which take a fixed size ndarray as argument
-            # and "channel" models, which take that and a dictionary
-            # should this dictionary be part of BasinData?
+            # and "channel" models, which take that and a dictionary.
+            # Should this dictionary be part of BasinData?
+            # Can this be an argument of this class?
             self.merge_channel_data(data, up_dict, self.hillslope_model.seq_length)
             
             qC = self.channel_model.simulate(
@@ -150,11 +175,43 @@ class HillslopeChannelRouter(AbstractRouter):
         save_simulation(self.simulation_file_path, basin_ids, q)
 
 
-# TODO: add SourceDescendentRouter class
-# TODO: transfer part of the init to the AbstractRouter class
-
 # list of auxiliary functions to be used by all Routers
 # would it be better to put them as static methods inside the AbstractRiverRouter class?
+
+def aggregate_descendents(
+    graph: dict,
+):
+    new_graph = {}
+    
+    def get_all_upstreams(basin):
+        direct_upstreams = graph[basin]
+        if not direct_upstreams:
+            return []
+        else:
+            all_upstreams = []
+            for upstream in direct_upstreams:
+                all_upstreams += [upstream] + get_all_upstreams(upstream)
+            return all_upstreams
+    
+    for basin in graph.keys():
+        new_graph[basin] = get_all_upstreams(basin)
+        
+    del graph
+    return new_graph
+
+
+def aggregate_routing_lvs(routing_lvs_basins):
+    new_routing_lvs_basins = [[], []]
+    flag = True
+    for routing_lv_basins in routing_lvs_basins:
+        if flag:
+            new_routing_lvs_basins[0] = routing_lv_basins
+            flag = False
+        else:
+            new_routing_lvs_basins[1] += routing_lv_basins
+    del routing_lvs_basins
+    return new_routing_lvs_basins
+                
 
 def get_up_dict(
     graph: dict,
@@ -179,7 +236,11 @@ def get_up_dict(
     return up_dict
 
 
-def integrate_distances_on_graph(graph: dict, attributes_dir: str, distance_name: str):
+def integrate_distances_on_graph(
+    graph: dict,
+    attributes_dir: str,
+    distance_name: str,
+):
     attributes_df = pd.read_csv(
         os.path.join(attributes_dir, 'attributes.csv'),
         index_col='basin',
@@ -212,12 +273,21 @@ def read_graph(file_path: str):
     # TODO: save and read as string is better?
     return {int(k): [int(v) for v in vals] for k, vals in graph.items()}
 
+def read_routing_lvs(routing_lvs_dir: str, num_routing_lvs: int):
+    def read_routing_lv(routing_lvs_dir: str, routing_lv: int):
+        file_path = os.path.join(
+            routing_lvs_dir, f"routing_lv{routing_lv:02d}.txt"
+        )
+        with open(file_path, 'r') as file:
+            basin_ids = [int(line.strip()) for line in file]
+        return basin_ids
+    
+    routing_lvs = []
+    for routing_lv in range(1, num_routing_lvs+1):
+        routing_lvs.append(read_routing_lv(routing_lvs_dir, routing_lv))
+    
+    return routing_lvs
 
-def read_routing_lv_ids(routing_lvs_dir: str, routing_lv: int):
-    file_path = os.path.join(routing_lvs_dir, f"routing_lv{routing_lv:02d}.txt")
-    with open(file_path, 'r') as file:
-        basin_ids = [int(line.strip()) for line in file]
-    return basin_ids
 
 
 def save_simulation(

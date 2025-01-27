@@ -17,9 +17,9 @@ def get_config():
         os.path.dirname(os.path.abspath(__file__)),
         "../../../data/attributes"
     )
-    config.train_ids = np.array([123, 456])
-    config.val_ids = np.array([123, 456])
-    config.test_ids = np.array([123, 456])
+    config.train_ids = np.array([1, 2])
+    config.val_ids = np.array([1, 2])
+    config.test_ids = np.array([1, 2])
     config.ids_per_eval = 2
     config.mass_features_names = ["sro_sum", "ssro_sum"]
     config.additional_features_names = []

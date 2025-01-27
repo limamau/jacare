@@ -71,9 +71,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run evaluation with given configuration."
     )
+    # TODO: add option to use many options here
     parser.add_argument(
         "--config",
-        choices=["fixed_gamma", "lstm", "mlp_gamma"],
         required=True,
     )
     args = parser.parse_args()

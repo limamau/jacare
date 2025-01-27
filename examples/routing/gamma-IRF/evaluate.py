@@ -1,4 +1,4 @@
-import h5py
+import argparse, h5py
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,10 +6,10 @@ import pandas as pd
 
 from jacare.routing import HillslopeChannelRouter
 
-from configs.a import get_config as get_a
-from configs.b import get_config as get_b
+from configs import get_config
 
-# TODO: write this function in in an utils.py file
+
+# TODO: add this function to src/evaluation
 def get_pred_and_true(
     timeseries_dir, 
     simulation_file_path,
@@ -22,10 +22,10 @@ def get_pred_and_true(
         q_pred = f[basin_id][:]
         
     # true
-    basin_123 = pd.read_csv(timeseries_dir + f"/basin_{basin_id}.csv")
-    q_true = basin_123["streamflow"].values
+    basin_df = pd.read_csv(timeseries_dir + f"/basin_{basin_id}.csv")
+    q_true = basin_df["streamflow"].values
     start_date, end_date = pd.to_datetime(test_dates[0]), pd.to_datetime(test_dates[1])
-    dates = pd.to_datetime(basin_123["date"]).values
+    dates = pd.to_datetime(basin_df["date"]).values
     mask = (dates >= start_date) & (dates <= end_date)
     q_true = q_true[mask]
     q_true = q_true[seq_length-1:]
@@ -33,9 +33,10 @@ def get_pred_and_true(
     return q_pred, q_true
 
 
-def get_preds(get_cfg):
+def get_pred(config, basin):
     # get config
-    cfg = get_cfg()
+    cfg = get_config(config)
+    label = cfg.label
     timeseries_dir = cfg.timeseries_dir
     attributes_dir = cfg.attributes_dir
     routing_lvs_dir = cfg.routing_lvs_dir
@@ -50,6 +51,7 @@ def get_preds(get_cfg):
     test_dates = cfg.test_dates
     hillslope_model = cfg.hillslope_model
     channel_model = cfg.channel_model
+    method = cfg.method
     
     # dummy values for normalization
     hillslope_norms = {
@@ -79,55 +81,66 @@ def get_preds(get_cfg):
         test_dates,
         hillslope_model,
         channel_model,
+        method,
     )
     
     # perform simulation
     router.simulate(*hillslope_norms.values(), *channel_norms.values())
     
-    # show timeseries for each of the basins
-    q_pred_123, q_true = get_pred_and_true(
+    # get timeseries for the chosen basin
+    q_pred, q_true = get_pred_and_true(
         timeseries_dir, 
         simulation_file_path,
         test_dates,
         hillslope_model.seq_length,
-        "123",
+        basin,
     )
     
-    q_pred_456, q_true = get_pred_and_true(
-        timeseries_dir, 
-        simulation_file_path,
-        test_dates,
-        hillslope_model.seq_length,
-        "456",
-    )
-    
-    q_pred_789, q_true = get_pred_and_true(
-        timeseries_dir, 
-        simulation_file_path,
-        test_dates,
-        hillslope_model.seq_length,
-        "789",
-    )
-    
-    return q_pred_123, q_pred_456, q_pred_789
+    return label, q_pred, q_true
 
 
-def main():
-    # experiment a)
-    a_pred_123, a_pred_456, a_pred_789 = get_preds(get_cfg=get_a)
-    
-    # experiment b)
-    b_pred_123, b_pred_456, b_pred_789 = get_preds(get_cfg=get_b)
-    
-    # quick comparison
+def main(args):
+    # plot for comparison
     _, ax = plt.subplots(figsize=(8,4))
-    dates = np.arange(a_pred_789.shape[-1])
-    plt.plot(dates, a_pred_789, label="789 - a")
-    plt.plot(dates, b_pred_789, label="789 - b")
+    basin = args.basin
+    
+    # iterate through given configs
+    flag = True
+    for config in args.config:
+        if flag:
+            flag = False
+            label, pred, q_true = get_pred(config, basin)
+            dates = np.arange(pred.shape[-1])
+            plt.plot(dates, q_true, label=f"{basin} - observed")
+        
+        else:
+            label, pred, _ = get_pred(config, basin)
+    
+        plt.plot(dates, pred, label=f"{basin} - {label}")
+    
+    # finalize plot
     ax.set_ylabel("Streamflow (m³/s)")
     plt.legend()
     plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Run evaluation with given configurations."
+    )
+    # choose configurations from the ones
+    # inside configs/
+    parser.add_argument(
+        "--config",
+        nargs="+",
+        required=True,
+    )
+    # choose the basin ID to show from the ones
+    # available in dataset
+    parser.add_argument(
+        "--basin",
+        required=True,
+    )
+    args = parser.parse_args()
+    
+    main(args)

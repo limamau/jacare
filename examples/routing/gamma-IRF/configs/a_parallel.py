@@ -8,6 +8,7 @@ DAY_TO_S = 86400.0
 
 def get_config():
     config = ml_collections.ConfigDict()
+    config.label = "parallel a)"
     
     # dataset parameters
     config.target_name = "streamflow"
@@ -29,7 +30,7 @@ def get_config():
     )
     config.simulation_file_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "../../../../data/simulations/gamma-IRF/b.h5"
+        "../../../../data/simulations/gamma-IRF/a.h5"
     )
     config.mass_features_names = ["sro_sum", "ssro_sum"]
     config.additional_features_names = []
@@ -53,12 +54,17 @@ def get_config():
     
     # channel model parameters
     config.channel_model_name = "IRF"
-    config.velocity = 0.001 * DAY_TO_S
-    config.diffusivity = 8000 * DAY_TO_S
+    config.velocity = 1.0 * DAY_TO_S
+    config.diffusivity = 800 * DAY_TO_S
+    config.is_conserving_mass = True
     config.channel_model = FixedIRF(
         velocity=config.velocity,
         diffusivity=config.diffusivity,
         seq_length=config.seq_length,
+        is_conserving_mass=config.is_conserving_mass,
     )
+    
+    # router
+    config.method = 'parallel'
     
     return config

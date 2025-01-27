@@ -1,8 +1,8 @@
-import h5py
+import argparse, h5py
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from jacare.checkpointing import Checkpointer
 from jacare.routing import HillslopeChannelRouter
@@ -22,10 +22,10 @@ def get_pred_and_true(
         q_pred = f[basin_id][:]
         
     # true
-    basin_123 = pd.read_csv(timeseries_dir + f"/basin_{basin_id}.csv")
-    q_true = basin_123["streamflow"].values
+    basin_df = pd.read_csv(timeseries_dir + f"/basin_{basin_id}.csv")
+    q_true = basin_df["streamflow"].values
     start_date, end_date = pd.to_datetime(test_dates[0]), pd.to_datetime(test_dates[1])
-    dates = pd.to_datetime(basin_123["date"]).values
+    dates = pd.to_datetime(basin_df["date"]).values
     mask = (dates >= start_date) & (dates <= end_date)
     q_true = q_true[mask]
     q_true = q_true[seq_length-1:]
@@ -90,7 +90,7 @@ def main():
     
     # get simulations from saved file
     seq_length = hillslope_model.seq_length
-    basin_id = "789"
+    basin_id = "4"
     q_pred, q_true = get_pred_and_true(
         timeseries_dir,
         simulation_file_path,
@@ -110,4 +110,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Run evaluation with given configurations."
+    )
+    # choose configurations from the ones
+    # inside configs/
+    parser.add_argument(
+        "--config",
+        required=True,
+    )
+    args = parser.parse_args()
+    
+    main(args)
