@@ -8,7 +8,7 @@ from configs import get_config
     
 def main(args):
     # get config
-    cfg = get_config(args)
+    cfg = get_config(args.config)
     timeseries_dir = cfg.timeseries_dir
     attributes_dir = cfg.attributes_dir
     train_ids = cfg.train_ids
@@ -79,7 +79,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--config",
-        choices=["fixed_gamma", "lstm", "mlp_gamma"],
         required=True,
     )
     args = parser.parse_args()

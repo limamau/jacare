@@ -10,7 +10,7 @@ from configs import get_config
 
 def main(args):
     # get config
-    cfg = get_config(args)
+    cfg = get_config(args.config)
     model_name = cfg.model_name
     timeseries_dir = cfg.timeseries_dir
     attributes_dir = cfg.attributes_dir
@@ -71,7 +71,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run evaluation with given configuration."
     )
-    # TODO: add option to use many options here
     parser.add_argument(
         "--config",
         required=True,

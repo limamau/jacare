@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from jacare.checkpointing import Checkpointer
 from jacare.routing import HillslopeChannelRouter
 
-from configs.config import get_config
+from configs import get_config
 
 
 def get_pred_and_true(
@@ -33,9 +33,9 @@ def get_pred_and_true(
     return q_pred, q_true
 
 
-def main():
+def main(args):
     # get config
-    cfg = get_config()
+    cfg = get_config(args.config)
     timeseries_dir = cfg.timeseries_dir
     attributes_dir = cfg.attributes_dir
     routing_lvs_dir = cfg.routing_lvs_dir
