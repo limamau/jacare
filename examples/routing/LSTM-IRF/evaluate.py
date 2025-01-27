@@ -5,32 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from jacare.checkpointing import Checkpointer
+from jacare.evaluation import get_pred_and_true
 from jacare.routing import HillslopeChannelRouter
 
 from configs import get_config
-
-
-def get_pred_and_true(
-    timeseries_dir, 
-    simulation_file_path,
-    test_dates,
-    seq_length,
-    basin_id,
-):
-    # pred
-    with h5py.File(simulation_file_path, "r") as f:
-        q_pred = f[basin_id][:]
-        
-    # true
-    basin_df = pd.read_csv(timeseries_dir + f"/basin_{basin_id}.csv")
-    q_true = basin_df["streamflow"].values
-    start_date, end_date = pd.to_datetime(test_dates[0]), pd.to_datetime(test_dates[1])
-    dates = pd.to_datetime(basin_df["date"]).values
-    mask = (dates >= start_date) & (dates <= end_date)
-    q_true = q_true[mask]
-    q_true = q_true[seq_length-1:]
-    
-    return q_pred, q_true
 
 
 def main(args):
