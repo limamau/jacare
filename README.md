@@ -4,16 +4,16 @@ River routing in JAX.
 
 ## Installation
 
-Install the dependencies with
+Install with
 
 ```bash
-pip install -r requirements.txt
+pip install git+https://github.com/limamau/jacare.git
 ```
 
-then build the project with
+To enable JAX in the GPU, it may be necessary to manually install it inside an environment with CUDA and GPUs available through
 
 ```bash
-pip install -e .
+pip install -U "jax[cuda12]"
 ```
 
 ## Quick start

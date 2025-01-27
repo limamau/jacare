@@ -1,3 +1,19 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
 [project]
 name = "jacare"
 version = "0.1.0"
+dependencies = [
+    "equinox",
+    "h5py",
+    "jax",
+    "matplotlib",
+    "ml_collections",
+    "numpy",
+    "optax",
+    "orbax",
+    "pandas",
+]
