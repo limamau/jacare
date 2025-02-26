@@ -7,5 +7,7 @@ data/graph.json
 dist/
 experiments/
 src/jacare.egg-info/
-venv/
 __pycache__/
+.venv/
+.zed/
+.vscode/

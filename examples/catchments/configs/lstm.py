@@ -1,21 +1,23 @@
-import ml_collections, optax, os
-from jax import random as jrandom
+import os
+
+import ml_collections
 import numpy as np
+import optax
+from jax import random as jrandom
 
 from jacare.models import LSTM
 
+
 def get_config():
     config = ml_collections.ConfigDict()
-    
+
     # dataset parameters
     config.target_name = "streamflow"
     config.timeseries_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "../../../data/timeseries"
+        os.path.dirname(os.path.abspath(__file__)), "../../../data/timeseries"
     )
     config.attributes_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "../../../data/attributes"
+        os.path.dirname(os.path.abspath(__file__)), "../../../data/attributes"
     )
     config.train_ids = np.array([1, 2])
     config.val_ids = np.array([1, 2])
@@ -25,28 +27,29 @@ def get_config():
     config.additional_features_names = []
     config.area_name = "area"
     config.additional_attributes_names = []
-    config.train_dates = (np.datetime64('1991-01-01'), np.datetime64('1992-12-31'))
-    config.validation_dates = (np.datetime64('1991-01-01'), np.datetime64('1992-12-31'))
-    config.test_dates = (np.datetime64('1991-01-01'), np.datetime64('1992-12-31'))
-    
+    config.train_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+    config.validation_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+    config.test_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+
     # model parameters
     config.model_name = "lstm"
     config.hidden_size = 16
     config.seed = 5678
     config.seq_length = 60
-    
+
     # model
     config.model = LSTM(
         in_size=len(
-            config.mass_features_names + 
-            config.additional_features_names + 
-            config.additional_attributes_names
-            ) + 1, # for area
+            config.mass_features_names
+            + config.additional_features_names
+            + config.additional_attributes_names
+        )
+        + 1,  # for area
         hidden_size=config.hidden_size,
         seq_length=config.seq_length,
         key=jrandom.PRNGKey(config.seed),
     )
-    
+
     # training parameters
     config.print_every = 100
     config.batch_size = 128
@@ -56,9 +59,9 @@ def get_config():
     config.max_save_to_keep = 1
     config.saving_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "../checkpoints/" + config.model_name
+        "../checkpoints/" + config.model_name,
     )
     config.optim = optax.adam(config.learning_rate)
     config.key = jrandom.PRNGKey(42)
-    
+
     return config

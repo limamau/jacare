@@ -1,14 +1,13 @@
-import argparse, h5py
+import argparse
+
 import jax.numpy as jnp
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from configs import get_config
 
 from jacare.checkpointing import Checkpointer
 from jacare.evaluation import get_pred_and_true
 from jacare.routing import HillslopeChannelRouter
-
-from configs import get_config
 
 
 def main(args):
@@ -29,22 +28,24 @@ def main(args):
     hillslope_model = cfg.hillslope_model
     checkpoint_path = cfg.checkpoint_path
     channel_model = cfg.channel_model
-    
+
     # restore hillslope model from checkpoint in examples/catchments
     hillslope_model, hillslope_norms = Checkpointer.restore_latest(
         hillslope_model,
         checkpoint_path,
-        len(mass_features_names + additional_features_names), # mass + additional features
-        1 + len(additional_attributes_names), # area + additional attributes
+        len(
+            mass_features_names + additional_features_names
+        ),  # mass + additional features
+        1 + len(additional_attributes_names),  # area + additional attributes
     )
-    
+
     # dummy values for normalization of channel model
     channel_norms_dict = {
-        'xd_norms': (jnp.zeros((3,)), jnp.ones((3,))), # sro, ssro, up_q
-        'xs_norms': (jnp.zeros((2,)), jnp.ones((2,))), # area, distance
-        'y_norms': (jnp.array([0.0]), jnp.array([1.0])), # streamflow
+        "xd_norms": (jnp.zeros((3,)), jnp.ones((3,))),  # sro, ssro, up_q
+        "xs_norms": (jnp.zeros((2,)), jnp.ones((2,))),  # area, distance
+        "y_norms": (jnp.array([0.0]), jnp.array([1.0])),  # streamflow
     }
-    
+
     # define router
     router = HillslopeChannelRouter(
         timeseries_dir,
@@ -62,10 +63,10 @@ def main(args):
         hillslope_model,
         channel_model,
     )
-    
+
     # perform simulation
     router.simulate(*hillslope_norms, *channel_norms_dict.values())
-    
+
     # get simulations from saved file
     seq_length = hillslope_model.seq_length
     basin_id = "4"
@@ -76,9 +77,9 @@ def main(args):
         seq_length,
         basin_id,
     )
-    
+
     # quick check
-    _, ax = plt.subplots(figsize=(8,4))
+    _, ax = plt.subplots(figsize=(8, 4))
     dates = np.arange(q_pred.shape[-1])
     plt.plot(dates, q_true, label="Observations")
     plt.plot(dates, q_pred, label="LSTM-IRF")
@@ -98,5 +99,5 @@ if __name__ == "__main__":
         required=True,
     )
     args = parser.parse_args()
-    
+
     main(args)

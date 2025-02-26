@@ -1,7 +1,5 @@
-from . import a_iterative
-from . import b_iterative
-from . import a_parallel
-from . import b_parallel
+from . import a_iterative, a_parallel, b_iterative, b_parallel
+
 
 def get_config(cfg):
     if cfg == "a_iterative":

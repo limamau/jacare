@@ -1,6 +1,5 @@
-from . import fixed_gamma
-from . import lstm
-from . import mlp_gamma
+from . import fixed_gamma, lstm, mlp_gamma
+
 
 def get_config(cfg):
     if cfg == "fixed_gamma":
