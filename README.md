@@ -18,7 +18,7 @@ pip install -U "jax[cuda12]"
 
 ## Quick start
 
-Build up the toy dataset with `data/generate_dataset.py` and play with the examples using
+Build up the toy dataset with `data/generate_dataset.py` and play with the examples in
 
 - [independent catchments](https://github.com/limamau/jacare/tree/main/examples/catchments)
 
