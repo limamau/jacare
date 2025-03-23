@@ -222,14 +222,14 @@ def aggregate_descendents(
 ) -> dict:
     new_graph = {}
 
-    def get_all_upstreams(basin, graph):
+    def get_all_upstreams(basin: int, graph: dict) -> List[int]:
         direct_upstreams = graph[basin]
         if not direct_upstreams:
             return []
         else:
             all_upstreams = []
             for upstream in direct_upstreams:
-                all_upstreams += [upstream] + get_all_upstreams(upstream, graph)
+                all_upstreams += [upstream] + get_all_upstreams(upstream[0], graph)
             return all_upstreams
 
     for basin in graph.keys():
