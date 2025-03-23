@@ -1,6 +1,5 @@
 import os
 
-import ml_collections
 import numpy as np
 import optax
 from jax import random as jrandom
@@ -8,59 +7,55 @@ from jax import random as jrandom
 from jacare.models import MLPGamma
 
 
-def get_config():
-    config = ml_collections.ConfigDict()
-
+class Config:
     # dataset parameters
-    config.target_name = "streamflow"
-    config.timeseries_dir = os.path.join(
+    target_name = "streamflow"
+    timeseries_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "../../data/timeseries"
     )
-    config.attributes_dir = os.path.join(
+    attributes_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "../../../data/attributes"
     )
-    config.train_ids = np.array([1, 2])
-    config.val_ids = np.array([1, 2])
-    config.test_ids = np.array([1, 2])
-    config.ids_per_eval = 2
-    config.mass_features_names = ["sro_sum", "ssro_sum"]
-    config.additional_features_names = []
-    config.area_name = "area"
-    config.additional_attributes_names = []
-    config.train_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
-    config.validation_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
-    config.test_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+    train_ids = [1, 2]
+    val_ids = [1, 2]
+    test_ids = [1, 2]
+    ids_per_eval = 2
+    mass_features_names = ["sro_sum", "ssro_sum"]
+    additional_features_names = []
+    area_name = "area"
+    additional_attributes_names = []
+    train_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+    validation_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
+    test_dates = (np.datetime64("1991-01-01"), np.datetime64("1992-12-31"))
 
     # model parameters
-    config.model_name = "mlp_gamma"
-    config.hidden_size = 32
-    config.seed = 5678
-    config.seq_length = 10
-    config.multiplier = 5.0
-    config.is_conserving_mass = True
+    model_name = "mlp_gamma"
+    hidden_size = 32
+    seed = 5678
+    seq_length = 10
+    multiplier = 5.0
+    is_conserving_mass = True
 
     # model
-    config.model = MLPGamma(
-        attributes_size=len(config.additional_features_names),
-        hidden_size=config.hidden_size,
-        seq_length=config.seq_length,
-        multiplier=config.multiplier,
-        key=jrandom.PRNGKey(config.seed),
-        is_conserving_mass=config.is_conserving_mass,
+    model = MLPGamma(
+        attributes_size=len(additional_features_names),
+        hidden_size=hidden_size,
+        seq_length=seq_length,
+        multiplier=multiplier,
+        key=jrandom.PRNGKey(seed),
+        is_conserving_mass=is_conserving_mass,
     )
 
     # training parameters
-    config.print_every = 1  # 100
-    config.batch_size = 1  # 128
-    config.learning_rate = 3e-3
-    config.steps = 11
-    config.save_every = 100
-    config.max_save_to_keep = 1
-    config.saving_path = os.path.join(
+    print_every = 1  # 100
+    batch_size = 1  # 128
+    learning_rate = 3e-3
+    steps = 11
+    save_every = 100
+    max_save_to_keep = 1
+    saving_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "../checkpoints/" + config.model_name,
+        "../checkpoints/" + model_name,
     )
-    config.optim = optax.adam(config.learning_rate)
-    config.key = jrandom.PRNGKey(42)
-
-    return config
+    optim = optax.adam(learning_rate)
+    key = jrandom.PRNGKey(42)

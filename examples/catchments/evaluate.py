@@ -11,19 +11,19 @@ from configs import get_config
 
 def main(args):
     # get config
-    cfg = get_config(args.config)
-    model_name = cfg.model_name
-    timeseries_dir = cfg.timeseries_dir
-    attributes_dir = cfg.attributes_dir
-    mass_features_names = cfg.mass_features_names
-    additional_features_names = cfg.additional_features_names
-    area_name = cfg.area_name
-    additional_attributes_names = cfg.additional_attributes_names
-    test_ids = cfg.test_ids
-    target_name = cfg.target_name
-    test_dates = cfg.test_dates
-    saving_path = cfg.saving_path
-    model = cfg.model
+    config = get_config(args)
+    model_name = config.model_name
+    timeseries_dir = config.timeseries_dir
+    attributes_dir = config.attributes_dir
+    mass_features_names = config.mass_features_names
+    additional_features_names = config.additional_features_names
+    area_name = config.area_name
+    additional_attributes_names = config.additional_attributes_names
+    test_ids = config.test_ids
+    target_name = config.target_name
+    test_dates = config.test_dates
+    saving_path = config.saving_path
+    model = config.model
 
     # get dataset
     test_data = BasinData.from_files(

@@ -12,22 +12,22 @@ from jacare.routing import HillslopeChannelRouter
 
 def main(args):
     # get config
-    cfg = get_config(args.config)
-    timeseries_dir = cfg.timeseries_dir
-    attributes_dir = cfg.attributes_dir
-    routing_lvs_dir = cfg.routing_lvs_dir
-    graph_file_path = cfg.graph_file_path
-    simulation_file_path = cfg.simulation_file_path
-    mass_features_names = cfg.mass_features_names
-    additional_features_names = cfg.additional_features_names
-    area_name = cfg.area_name
-    distance_name = cfg.distance_name
-    additional_attributes_names = cfg.additional_attributes_names
-    target_name = cfg.target_name
-    test_dates = cfg.test_dates
-    hillslope_model = cfg.hillslope_model
-    checkpoint_path = cfg.checkpoint_path
-    channel_model = cfg.channel_model
+    config = get_config(args)
+    timeseries_dir = config.timeseries_dir
+    attributes_dir = config.attributes_dir
+    routing_lvs_dir = config.routing_lvs_dir
+    graph_file_path = config.graph_file_path
+    simulation_file_path = config.simulation_file_path
+    mass_features_names = config.mass_features_names
+    additional_features_names = config.additional_features_names
+    area_name = config.area_name
+    distance_name = config.distance_name
+    additional_attributes_names = config.additional_attributes_names
+    target_name = config.target_name
+    test_dates = config.test_dates
+    hillslope_model = config.hillslope_model
+    checkpoint_path = config.checkpoint_path
+    channel_model = config.channel_model
 
     # restore hillslope model from checkpoint in examples/catchments
     hillslope_model, hillslope_norms = Checkpointer.restore_latest(

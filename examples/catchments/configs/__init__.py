@@ -1,12 +1,14 @@
+from argparse import Namespace
+
 from . import fixed_gamma, lstm, mlp_gamma
 
 
-def get_config(cfg):
-    if cfg == "fixed_gamma":
-        return fixed_gamma.get_config()
-    elif cfg == "mlp_gamma":
-        return mlp_gamma.get_config()
-    elif cfg == "lstm":
-        return lstm.get_config()
+def get_config(args: Namespace):
+    if args.config == "fixed_gamma":
+        return fixed_gamma.Config()
+    elif args.config == "mlp_gamma":
+        return mlp_gamma.Config()
+    elif args.config == "lstm":
+        return lstm.Config()
     else:
-        raise ValueError(f"Unknown config: {cfg}")
+        raise ValueError(f"Unknown config: {args.config}")
