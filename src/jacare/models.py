@@ -64,7 +64,7 @@ class AbstractConvolutionModel(AbstractModel):
         Tuple[Array, Array],
         Tuple[Array, Array],
     ]:
-        # TODO: is this the best normalization?
+        # limamau: is this the best normalization?
         # maybe an alternative is to normalize all the attributes but the area
         # as usual, and then normalize the area by the std and divide the streamflow
         # by the same value.
@@ -381,9 +381,9 @@ class MLPGamma(AbstractConvolutionModel):
         self.sslinear2 = eqx.nn.Linear(hidden_size, 2, key=sskey2)
         self.is_conserving_mass = is_conserving_mass
 
-    # TODO: why is this forecasting NaNs? more attributes is enough?
-    # TODO: use sro and ssro instead of xd
-    # TODO: use areas and other attributes instead of xs
+    # limamau: why is this forecasting NaNs? more attributes is enough?
+    # limamau: use sro and ssro instead of xd
+    # limamau: use areas and other attributes instead of xs
     def __call__(
         self,
         *args: Array,

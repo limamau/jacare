@@ -19,7 +19,7 @@ from .models import AbstractModel
 def compute_loss(model: AbstractModel, *args) -> Array:
     *model_args, y = args
     pred_y = jax.vmap(model)(*model_args)
-    # TODO: pass loss function as an argument
+    # limamau: pass loss function as an argument
     mse = jnp.mean((y - pred_y) ** 2)
     return mse
 
@@ -100,7 +100,7 @@ def train_routing_level(
     ckpter.mngr.wait_until_finished()
 
 
-# TODO: def train_router():
+# limamau: def train_router():
 # train hillslope model and save it
 # then iteratively simulate and train each routing_lv > 1
 # save after each complete route

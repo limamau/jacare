@@ -43,12 +43,12 @@ class AbstractRouter:
     ) -> None:
         raise NotImplementedError
 
-    # TODO: add simulate_batch method
+    # limamau: add simulate_batch method
     # to simulate a batch inside a routing level
     # and define the simulate_routing_lv method
     # iniside this class
 
-    # TODO: add option to simulate a sub-ensemble
+    # limamau: add option to simulate a sub-ensemble
     # of basins on this routing level
 
 
@@ -85,7 +85,7 @@ class HillslopeChannelRouter(AbstractRouter):
         hillslope_module: AbstractModel,
         channel_module: AbstractModel,
         method: str = "iterative",
-        # TODO: add optional variable "target" to alleviate
+        # limamau: add optional variable "target" to alleviate
         # training and include all basins ('all') or only gauged basins
         # ('gauged') and their upstreams in the graph? Another option could
         # be to do that automatically during trainig, but using only gauged
@@ -193,7 +193,7 @@ class HillslopeChannelRouter(AbstractRouter):
                 basin_ids,
             )
 
-            # TODO: what if up_dict was directly used?
+            # limamau: what if up_dict was directly used?
             # one idea is to define the models between
             # "hillslope" models, which take a fixed size ndarray as argument
             # and "channel" models, which take that and a dictionary.
@@ -317,7 +317,7 @@ def read_graph(file_path: str) -> Dict[int, List[int]]:
         graph = json.load(json_file)
 
     # keys and values are converted to int
-    # TODO: save and read as string is better?
+    # limamau: save and read as string is better?
     return {int(k): [int(v) for v in vals] for k, vals in graph.items()}
 
 
